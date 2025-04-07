@@ -55,7 +55,7 @@
 <script>
   const params = new URLSearchParams(location.search);
   const url = params.get('url');
-  const API = 'https://api.siputzx.my.id/api/anime/komikindo-download?url=' + encodeURIComponent(url);
+  const API = 'http://zyndrahr.voxelox.com:49168/komikindo?url=' + encodeURIComponent(url);
 
   const komikName = decodeURIComponent(url).split('/')[3].replace(/-/g, ' ');
   const chapterSlug = decodeURIComponent(url).split('/').pop().replace(/-/g, ' ');
@@ -65,22 +65,27 @@
   document.title = fullTitle;
 
   async function fetchChapter() {
-    const res = await fetch(API);
-    const result = await res.json();
-    if (!result.status) return alert("Gagal memuat gambar");
+    try {
+      const res = await fetch(API);
+      const result = await res.json();
+      if (!result.status) return alert("Gagal memuat gambar");
 
-    const container = document.getElementById('gambarChapter');
-    container.innerHTML = '';
-    result.data.forEach(link => {
-      const img = document.createElement('img');
-      img.src = link;
-      container.appendChild(img);
-    });
+      const container = document.getElementById('gambarChapter');
+      container.innerHTML = '';
+      result.data.forEach(link => {
+        const img = document.createElement('img');
+        img.src = link;
+        container.appendChild(img);
+      });
 
-    const komikKey = decodeURIComponent(url).split('/')[3];
-    localStorage.setItem('lastRead_' + komikKey, JSON.stringify({ title: komikKey, url: url }));
+      const komikKey = decodeURIComponent(url).split('/')[3];
+      localStorage.setItem('lastRead_' + komikKey, JSON.stringify({ title: komikKey, url: url }));
 
-    checkNavigation();
+      checkNavigation();
+    } catch (err) {
+      alert("Terjadi kesalahan saat memuat chapter.");
+      console.error(err);
+    }
   }
 
   function checkNavigation() {
@@ -92,7 +97,7 @@
     const prevUrl = base + 'chapter-' + (currentNum - 1);
     const nextUrl = base + 'chapter-' + (currentNum + 1);
 
-    fetch(`https://api.siputzx.my.id/api/anime/komikindo-download?url=${encodeURIComponent(prevUrl)}`)
+    fetch(`http://zyndrahr.voxelox.com:49168/komikindo?url=${encodeURIComponent(prevUrl)}`)
       .then(res => res.json())
       .then(data => {
         if (data.status) {
@@ -102,7 +107,7 @@
         }
       });
 
-    fetch(`https://api.siputzx.my.id/api/anime/komikindo-download?url=${encodeURIComponent(nextUrl)}`)
+    fetch(`http://zyndrahr.voxelox.com:49168/komikindo?url=${encodeURIComponent(nextUrl)}`)
       .then(res => res.json())
       .then(data => {
         if (data.status) {
