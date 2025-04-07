@@ -2,131 +2,154 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title id="pageTitle">Memuat Chapter...</title>
+  <title>Pencarian Komik</title>
   <style>
     :root {
+      --bg: #fff;
+      --text: #000;
+      --card-bg: #f2f2f2;
+    }
+    body.dark {
       --bg: #121212;
       --text: #f0f0f0;
-      --btn-bg: #555;
-      --btn-text: #fff;
+      --card-bg: #1e1e1e;
     }
     body {
       background-color: var(--bg);
       color: var(--text);
-      font-family: sans-serif;
-      margin: 0;
+      font-family: Arial, sans-serif;
       padding: 20px;
+    }
+    h1 {
       text-align: center;
     }
-    img {
-      max-width: 100%;
-      margin-bottom: 10px;
-      border-radius: 4px;
+    .search-bar {
+      text-align: center;
+      margin-bottom: 20px;
     }
-    .nav-buttons {
-      margin: 30px 0 10px;
-    }
-    .btn {
-      background-color: var(--btn-bg);
-      color: var(--btn-text);
-      padding: 10px 15px;
-      margin: 0 10px;
-      border: none;
+    input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
       border-radius: 5px;
-      cursor: pointer;
+      border: 1px solid #ccc;
     }
-    .btn:hover {
-      opacity: 0.8;
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-left: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+      background-color: #3498db;
+      color: white;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .toggle-mode {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #666;
+    }
+    .komik-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    .komik-card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 10px;
+      width: 180px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .komik-card img {
+      width: 100%;
+      border-radius: 8px;
+    }
+    .section-title {
+      margin-top: 30px;
+      font-size: 20px;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 5px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-<h1 id="judulChapter">Memuat Judul...</h1>
+<button class="toggle-mode" onclick="toggleMode()">🌓 Mode</button>
 
-<div id="gambarChapter"></div>
+<h1>Cari Komik</h1>
 
-<div class="nav-buttons">
-  <button class="btn" onclick="goBack()">⬅ Kembali</button>
-  <button class="btn" id="prevBtn" style="display: none;"><< Chapter Sebelumnya</button>
-  <button class="btn" id="nextBtn" style="display: none;">Chapter Selanjutnya >></button>
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Masukkan nama komik...">
+  <button onclick="searchKomik()">Cari</button>
 </div>
 
+<div id="bookmarkSection">
+  <div class="section-title">📌 Bookmark Kamu</div>
+  <div class="komik-list" id="bookmarkList"></div>
+</div>
+
+<div class="section-title">🔍 Hasil Pencarian</div>
+<div class="komik-list" id="hasilPencarian"></div>
+
 <script>
-  const params = new URLSearchParams(location.search);
-  const url = params.get('url');
-  const API = 'http://zyndrahr.voxelox.com:49168/komikindo?url=' + encodeURIComponent(url);
+  const API_SEARCH = 'https://api.siputzx.my.id/api/anime/komikindo-serach?query=';
 
-  const komikName = decodeURIComponent(url).split('/')[3].replace(/-/g, ' ');
-  const chapterSlug = decodeURIComponent(url).split('/').pop().replace(/-/g, ' ');
-  const fullTitle = `Komik ${capitalizeWords(komikName)} ${capitalizeWords(chapterSlug)}`;
+  // Dark mode init
+  if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark');
+  }
 
-  document.getElementById('judulChapter').textContent = fullTitle;
-  document.title = fullTitle;
+  function toggleMode() {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+  }
 
-  async function fetchChapter() {
-    try {
-      const res = await fetch(API);
-      const result = await res.json();
-      if (!result.status) return alert("Gagal memuat gambar");
+  async function searchKomik() {
+    const query = document.getElementById('searchInput').value;
+    if (!query) return alert('Masukkan nama komik!');
+    const res = await fetch(API_SEARCH + encodeURIComponent(query));
+    const result = await res.json();
 
-      const container = document.getElementById('gambarChapter');
-      container.innerHTML = '';
-      result.data.forEach(link => {
-        const img = document.createElement('img');
-        img.src = link;
-        container.appendChild(img);
-      });
-
-      const komikKey = decodeURIComponent(url).split('/')[3];
-      localStorage.setItem('lastRead_' + komikKey, JSON.stringify({ title: komikKey, url: url }));
-
-      checkNavigation();
-    } catch (err) {
-      alert("Terjadi kesalahan saat memuat chapter.");
-      console.error(err);
+    if (result.status) {
+      tampilkanHasil(result.data, 'hasilPencarian');
     }
   }
 
-  function checkNavigation() {
-    const currentSlug = url.match(/chapter-(\d+)/);
-    if (!currentSlug) return;
-    const currentNum = parseInt(currentSlug[1]);
-    const base = url.split('chapter-')[0];
-
-    const prevUrl = base + 'chapter-' + (currentNum - 1);
-    const nextUrl = base + 'chapter-' + (currentNum + 1);
-
-    fetch(`http://zyndrahr.voxelox.com:49168/komikindo?url=${encodeURIComponent(prevUrl)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status) {
-          const prevBtn = document.getElementById('prevBtn');
-          prevBtn.style.display = 'inline-block';
-          prevBtn.onclick = () => location.href = `chapter.html?url=${encodeURIComponent(prevUrl)}`;
-        }
-      });
-
-    fetch(`http://zyndrahr.voxelox.com:49168/komikindo?url=${encodeURIComponent(nextUrl)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status) {
-          const nextBtn = document.getElementById('nextBtn');
-          nextBtn.style.display = 'inline-block';
-          nextBtn.onclick = () => location.href = `chapter.html?url=${encodeURIComponent(nextUrl)}`;
-        }
-      });
+  function tampilkanHasil(data, elementId) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = '';
+    data.forEach(komik => {
+      const card = document.createElement('div');
+      card.className = 'komik-card';
+      card.innerHTML = `
+        <img src="${komik.image}" alt="${komik.title}">
+        <h3>${komik.title}</h3>
+        <button onclick="location.href='detail.html?url=${encodeURIComponent(komik.href)}'">Baca</button>
+      `;
+      container.appendChild(card);
+    });
   }
 
-  function goBack() {
-    history.back();
+  function loadBookmark() {
+    const list = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    const container = document.getElementById('bookmarkList');
+    if (list.length === 0) {
+      document.getElementById('bookmarkSection').style.display = 'none';
+      return;
+    }
+    document.getElementById('bookmarkSection').style.display = 'block';
+    tampilkanHasil(list, 'bookmarkList');
   }
 
-  function capitalizeWords(str) {
-    return str.replace(/\b\w/g, char => char.toUpperCase());
-  }
-
-  fetchChapter();
+  loadBookmark();
 </script>
 
 </body>
