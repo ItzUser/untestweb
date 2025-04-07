@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Pencarian Komik</title>
+  <style>
+    :root {
+      --bg: #fff;
+      --text: #000;
+      --card-bg: #f2f2f2;
+    }
+    body.dark {
+      --bg: #121212;
+      --text: #f0f0f0;
+      --card-bg: #1e1e1e;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .search-bar {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-left: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+      background-color: #3498db;
+      color: white;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .toggle-mode {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #666;
+    }
+    .komik-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+    }
+    .komik-card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 10px;
+      width: 180px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .komik-card img {
+      width: 100%;
+      border-radius: 8px;
+    }
+    .section-title {
+      margin-top: 30px;
+      font-size: 20px;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 5px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<button class="toggle-mode" onclick="toggleMode()">🌓 Mode</button>
+
+<h1>Cari Komik</h1>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Masukkan nama komik...">
+  <button onclick="searchKomik()">Cari</button>
+</div>
+
+<div id="bookmarkSection">
+  <div class="section-title">📌 Bookmark Kamu</div>
+  <div class="komik-list" id="bookmarkList"></div>
+</div>
+
+<div class="section-title">🔍 Hasil Pencarian</div>
+<div class="komik-list" id="hasilPencarian"></div>
+
+<script>
+  const API_SEARCH = 'https://api.siputzx.my.id/api/anime/komikindo-serach?query=';
+
+  // Dark mode init
+  if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark');
+  }
+
+  function toggleMode() {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+  }
+
+  async function searchKomik() {
+    const query = document.getElementById('searchInput').value;
+    if (!query) return alert('Masukkan nama komik!');
+    const res = await fetch(API_SEARCH + encodeURIComponent(query));
+    const result = await res.json();
+
+    if (result.status) {
+      tampilkanHasil(result.data, 'hasilPencarian');
+    }
+  }
+
+  function tampilkanHasil(data, elementId) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = '';
+    data.forEach(komik => {
+      const card = document.createElement('div');
+      card.className = 'komik-card';
+      card.innerHTML = `
+        <img src="${komik.image}" alt="${komik.title}">
+        <h3>${komik.title}</h3>
+        <button onclick="location.href='detail.html?url=${encodeURIComponent(komik.href)}'">Baca</button>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function loadBookmark() {
+    const list = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    const container = document.getElementById('bookmarkList');
+    if (list.length === 0) {
+      document.getElementById('bookmarkSection').style.display = 'none';
+      return;
+    }
+    document.getElementById('bookmarkSection').style.display = 'block';
+    tampilkanHasil(list, 'bookmarkList');
+  }
+
+  loadBookmark();
+</script>
+
+</body>
+</html>

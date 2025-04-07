@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title id="pageTitle">Memuat Chapter...</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --text: #f0f0f0;
+      --btn-bg: #555;
+      --btn-text: #fff;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    img {
+      max-width: 100%;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    .nav-buttons {
+      margin: 30px 0 10px;
+    }
+    .btn {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      padding: 10px 15px;
+      margin: 0 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="judulChapter">Memuat Judul...</h1>
+
+<div id="gambarChapter"></div>
+
+<div class="nav-buttons">
+  <button class="btn" onclick="goBack()">⬅ Kembali</button>
+  <button class="btn" id="prevBtn" style="display: none;"><< Chapter Sebelumnya</button>
+  <button class="btn" id="nextBtn" style="display: none;">Chapter Selanjutnya >></button>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const url = params.get('url');
+  const API = 'https://api.siputzx.my.id/api/anime/komikindo-download?url=' + encodeURIComponent(url);
+
+  const komikName = decodeURIComponent(url).split('/')[3].replace(/-/g, ' ');
+  const chapterSlug = decodeURIComponent(url).split('/').pop().replace(/-/g, ' ');
+  const fullTitle = `Komik ${capitalizeWords(komikName)} ${capitalizeWords(chapterSlug)}`;
+
+  document.getElementById('judulChapter').textContent = fullTitle;
+  document.title = fullTitle;
+
+  async function fetchChapter() {
+    const res = await fetch(API);
+    const result = await res.json();
+    if (!result.status) return alert("Gagal memuat gambar");
+
+    const container = document.getElementById('gambarChapter');
+    container.innerHTML = '';
+    result.data.forEach(link => {
+      const img = document.createElement('img');
+      img.src = link;
+      container.appendChild(img);
+    });
+
+    const komikKey = decodeURIComponent(url).split('/')[3];
+    localStorage.setItem('lastRead_' + komikKey, JSON.stringify({ title: komikKey, url: url }));
+
+    checkNavigation();
+  }
+
+  function checkNavigation() {
+    const currentSlug = url.match(/chapter-(\d+)/);
+    if (!currentSlug) return;
+    const currentNum = parseInt(currentSlug[1]);
+    const base = url.split('chapter-')[0];
+
+    const prevUrl = base + 'chapter-' + (currentNum - 1);
+    const nextUrl = base + 'chapter-' + (currentNum + 1);
+
+    fetch(`https://api.siputzx.my.id/api/anime/komikindo-download?url=${encodeURIComponent(prevUrl)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status) {
+          const prevBtn = document.getElementById('prevBtn');
+          prevBtn.style.display = 'inline-block';
+          prevBtn.onclick = () => location.href = `chapter.html?url=${encodeURIComponent(prevUrl)}`;
+        }
+      });
+
+    fetch(`https://api.siputzx.my.id/api/anime/komikindo-download?url=${encodeURIComponent(nextUrl)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status) {
+          const nextBtn = document.getElementById('nextBtn');
+          nextBtn.style.display = 'inline-block';
+          nextBtn.onclick = () => location.href = `chapter.html?url=${encodeURIComponent(nextUrl)}`;
+        }
+      });
+  }
+
+  function goBack() {
+    history.back();
+  }
+
+  function capitalizeWords(str) {
+    return str.replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  fetchChapter();
+</script>
+
+</body>
+</html>
